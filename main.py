@@ -1,10 +1,28 @@
 import hashlib
-from fastapi import HTTPException
+import logging
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from . import app, logger
-from .db import users_collection
+from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
 
-# Modèles
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# MongoDB connection
+MONGO_URL = os.getenv("MONGO_URL")
+client = MongoClient(MONGO_URL)
+db = client["GearFox"]
+users_collection = db["Users"]
+
+# Initialize FastAPI
+app = FastAPI()
+
+# Models
 class User(BaseModel):
     userid: str
     password: str
@@ -13,50 +31,50 @@ class UserLogin(BaseModel):
     userid: str
     password: str
 
-# Fonction auxiliaire pour hasher les mots de passe avec SHA-256
+# Helper function to hash passwords using SHA-256
 def hash_password_sha256(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-# Route pour créer un nouvel utilisateur (POST)
+# Route to create a new user (POST)
 @app.post("/users")
 async def create_user(user: User):
-    # Vérifier si l'utilisateur existe déjà
+    # Check if the user already exists
     if users_collection.find_one({"userid": user.userid}):
         raise HTTPException(status_code=400, detail="User already exists")
 
-    # Hasher le mot de passe avec SHA-256
+    # Hash the password using SHA-256
     hashed_password = hash_password_sha256(user.password)
 
-    # Créer l'objet utilisateur
+    # Create the user object
     new_user = {
         "userid": user.userid,
-        "password": hashed_password,  # Stocker le mot de passe hashé
+        "password": hashed_password,  # Store the hashed password
     }
 
-    # Insérer l'utilisateur dans la base de données
+    # Insert the user into the database
     result = users_collection.insert_one(new_user)
 
     logger.info(f"User {user.userid} created successfully!")
 
     return {"message": "User created successfully", "user_id": str(result.inserted_id)}
 
-# Route pour connecter un utilisateur (POST)
+# Route to log in a user (POST)
 @app.post("/users/login")
 async def login_user(user: UserLogin):
-    # Trouver l'utilisateur dans la base de données par userid
+    # Find the user in the database by userid
     db_user = users_collection.find_one({"userid": user.userid})
     
     if not db_user:
         raise HTTPException(status_code=400, detail="User not found")
 
-    # Hasher le mot de passe fourni et le comparer avec le mot de passe stocké
+    # Hash the provided password and compare it with the stored hashed password
     hashed_password = hash_password_sha256(user.password)
 
     if hashed_password != db_user["password"]:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    # Si les identifiants sont corrects, loguer le succès
+    # If the credentials are correct, log success
     logger.info(f"User {user.userid} logged in successfully!")
 
-    # Retourner une réponse de succès
+    # Return success response
     return {"message": "Login successful", "user_id": str(db_user["_id"])}
