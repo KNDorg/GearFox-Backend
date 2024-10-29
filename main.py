@@ -35,9 +35,9 @@ class UserLogin(BaseModel):
 def hash_password_sha256(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-# Route to create a new user (POST)
-@app.post("/users")
-async def create_user(user: User):
+## Route to register a new user (POST)
+@app.post("/users/register")
+async def register_user(user: User):
     # Check if the user already exists
     if users_collection.find_one({"userid": user.userid}):
         raise HTTPException(status_code=400, detail="User already exists")
@@ -54,9 +54,10 @@ async def create_user(user: User):
     # Insert the user into the database
     result = users_collection.insert_one(new_user)
 
-    logger.info(f"User {user.userid} created successfully!")
+    logger.info(f"User {user.userid} registered successfully!")
 
-    return {"message": "User created successfully", "user_id": str(result.inserted_id)}
+    return {"message": "User registered successfully", "user_id": str(result.inserted_id)}
+
 
 # Route to log in a user (POST)
 @app.post("/users/login")
