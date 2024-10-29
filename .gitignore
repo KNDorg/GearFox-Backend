@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environnement virtuel
+venv/
+.env
+
+# Dépendances
+*.egg-info/
+
+# Fichiers de log
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Autres
+*.swp
+*.swo
+.idea/
+.vscode/
