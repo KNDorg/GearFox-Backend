@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -21,6 +22,20 @@ users_collection = db["Users"]
 
 # Initialize FastAPI
 app = FastAPI()
+
+# Configure CORS
+origins = [
+    "http://localhost:3000",  # Replace with your frontend URL
+    "https://your-production-domain.com"  # Add your production domain if needed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Models
 class User(BaseModel):
